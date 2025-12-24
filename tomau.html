@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Trò chơi tô màu – 20 con vật</title>
+<style>
+    body { font-family: Arial; display: flex; gap: 20px; margin: 20px; }
+    .color-box { width: 40px; height: 40px; cursor: pointer; border: 2px solid #333; }
+    #palette { display: flex; flex-wrap: wrap; width: 200px; gap: 8px; }
+    #animals { width: 180px; }
+    #animals button {
+        width: 100%; margin-bottom: 8px; padding: 8px;
+        border: 2px solid #444; cursor: pointer; background: #fff; font-weight: bold;
+    }
+    #drawingArea svg { width: 600px; height: 600px; }
+    [data-part] { cursor: pointer; transition: .2s; }
+    [data-part]:hover { opacity: 0.7; }
+</style>
+</head>
+<body>
+
+<!-- DANH SÁCH CON VẬT -->
+<div id="animals">
+    <h3>Chọn con vật</h3>
+    <div id="animalList"></div>
+</div>
+
+<!-- KHUNG TÔ MÀU -->
+<div id="drawingArea"></div>
+
+<!-- BẢNG MÀU -->
+<div>
+    <h3>Bảng màu</h3>
+    <div id="palette"></div>
+</div>
+
+<script>
+/* ==============================
+   20 SVG MẶT CON VẬT
+============================== */
+
+const animals = {
+"Chó": `
+<svg viewBox="0 0 300 300">
+ <circle data-part cx="150" cy="160" r="100" fill="white" stroke="black" stroke-width="4"/>
+ <ellipse data-part cx="90" cy="130" rx="40" ry="55" fill="#E6D8C4" stroke="black" stroke-width="4"/>
+ <ellipse data-part cx="210" cy="130" rx="40" ry="55" fill="#E6D8C4" stroke="black" stroke-width="4"/>
+ <circle cx="120" cy="160" r="12"/>
+ <circle cx="180" cy="160" r="12"/>
+ <path d="M140 200 Q150 210 160 200" stroke="black" stroke-width="4" fill="none"/>
+</svg>
+`,
+
+"Mèo": `
+<svg viewBox="0 0 300 300">
+ <circle data-part cx="150" cy="160" r="100" fill="#FFE6CC" stroke="black" stroke-width="4"/>
+ <polygon data-part points="70,80 110,30 130,90" fill="#FFE6CC" stroke="black" stroke-width="4"/>
+ <polygon data-part points="230,80 190,30 170,90" fill="#FFE6CC" stroke="black" stroke-width="4"/>
+ <circle cx="120" cy="150" r="12"/>
+ <circle cx="180" cy="150" r="12"/>
+ <path d="M130 190 Q150 205 170 190" stroke="black" stroke-width="4" fill="none"/>
+</svg>
+`,
+
+"Thỏ": `
+<svg viewBox="0 0 300 300">
+ <circle data-part cx="150" cy="170" r="90" fill="white" stroke="black" stroke-width="4"/>
+ <rect data-part x="110" y="20" width="30" height="110" rx="15" fill="white" stroke="black" stroke-width="4"/>
+ <rect data-part x="160" y="20" width="30" height="110" rx="15" fill="white" stroke="black" stroke-width="4"/>
+ <circle cx="130" cy="170" r="10"/>
+ <circle cx="170" cy="170" r="10"/>
+ <path d="M140 200 Q150 210 160 200" stroke="black" stroke-width="4" fill="none"/>
+</svg>
+`,
+
+"Gấu": `
+<svg viewBox="0 0 300 300">
+ <circle data-part cx="150" cy="160" r="100" fill="#E9D1A5" stroke="black" stroke-width="4"/>
+ <circle data-part cx="90" cy="80" r="35" fill="#E9D1A5" stroke="black" stroke-width="4"/>
+ <circle data-part cx="210" cy="80" r="35" fill="#E9D1A5" stroke="black" stroke-width="4"/>
+ <circle cx="120" cy="150" r="12"/>
+ <circle cx="180" cy="150" r="12"/>
+ <ellipse data-part cx="150" cy="190" rx="25" ry="15" fill="#F7E9D9" stroke="black" stroke-width="4"/>
+</svg>
+`,
+
+"Gấu Trúc": `
+<svg viewBox="0 0 300 300">
+ <circle data-part cx="150" cy="160" r="100" fill="white" stroke="black" stroke-width="4"/>
+ <ellipse data-part cx="90" cy="80" rx="35" ry="35" fill="black"/>
+ <ellipse data-part cx="210" cy="80" rx="35" ry="35" fill="black"/>
+ <ellipse cx="120" cy="150" rx="22" ry="15" fill="black"/>
+ <ellipse cx="180" cy="150" rx="22" ry="15" fill="black"/>
+ <circle cx="150" cy="180" r="12"/>
+</svg>
+`,
+
+"Ếch": `
+<svg viewBox="0 0 300 300">
+ <circle data-part cx="150" cy="160" r="100" fill="#C8F28B" stroke="black" stroke-width="4"/>
+ <circle data-part cx="100" cy="80" r="35" fill="#C8F28B" stroke="black" stroke-width="4"/>
+ <circle data-part cx="200" cy="80" r="35" fill="#C8F28B" stroke="black" stroke-width="4"/>
+ <circle cx="100" cy="80" r="12"/>
+ <circle cx="200" cy="80" r="12"/>
+ <path d="M120 190 Q150 210 180 190" stroke="black" stroke-width="4" fill="none"/>
+</svg>
+`,
+
+"Khỉ": `
+<svg viewBox="0 0 300 300">
+ <circle data-part cx="150" cy="160" r="100" fill="#D9B38C" stroke="black" stroke-width="4"/>
+ <ellipse data-part cx="90" cy="120" rx="40" ry="55" fill="#F2D7B0" stroke="black" stroke-width="4"/>
+ <ellipse data-part cx="210" cy="120" rx="40" ry="55" fill="#F2D7B0" stroke="black" stroke-width="4"/>
+ <circle cx="120" cy="160" r="12"/>
+ <circle cx="180" cy="160" r="12"/>
+ <path d="M140 200 Q150 210 160 200" stroke="black" stroke-width="4" fill="none"/>
+</svg>
+`,
+
+"Voi": `
+<svg viewBox="0 0 300 300">
+ <circle data-part cx="150" cy="150" r="100" fill="#C7D7E8" stroke="black" stroke-width="4"/>
+ <ellipse data-part cx="90" cy="90" rx="30" ry="40" fill="#C7D7E8" stroke="black" stroke-width="4"/>
+ <ellipse data-part cx="210" cy="90" rx="30" ry="40" fill="#C7D7E8" stroke="black" stroke-width="4"/>
+ <rect data-part x="135" y="150" width="30" height="100" rx="20" fill="#C7D7E8" stroke="black" stroke-width="4"/>
+ <circle cx="120" cy="150" r="12"/>
+ <circle cx="180" cy="150" r="12"/>
+</svg>
+`,
+
+
+"Heo": `
+<svg viewBox="0 0 300 300">
+ <circle data-part cx="150" cy="160" r="100" fill="#FFDEE1" stroke="black" stroke-width="4"/>
+ <circle data-part cx="100" cy="110" r="30" fill="#FFDEE1" stroke="black" stroke-width="4"/>
+ <circle data-part cx="200" cy="110" r="30" fill="#FFDEE1" stroke="black" stroke-width="4"/>
+ <ellipse data-part cx="150" cy="180" rx="35" ry="25" fill="#FFB6C1" stroke="black" stroke-width="4"/>
+ <circle cx="135" cy="180" r="8"/>
+ <circle cx="165" cy="180" r="8"/>
+</svg>
+`,
+
+"Cá": `
+<svg viewBox="0 0 300 300">
+ <circle data-part cx="150" cy="150" r="90" fill="#C8E8FF" stroke="black" stroke-width="4"/>
+ <polygon data-part points="230,150 280,120 280,180" fill="#C8E8FF" stroke="black" stroke-width="4"/>
+ <circle cx="120" cy="150" r="12"/>
+</svg>
+`,
+
+
+"Gà": `
+<svg viewBox="0 0 300 300">
+ <circle data-part cx="150" cy="160" r="100" fill="white" stroke="black" stroke-width="4"/>
+ <path data-part d="M130 40 Q150 10 170 40" fill="white" stroke="black" stroke-width="4"/>
+ <circle cx="120" cy="150" r="12"/>
+ <circle cx="180" cy="150" r="12"/>
+ <polygon data-part points="150,160 130,180 170,180" fill="white" stroke="black" stroke-width="4"/>
+</svg>
+`
+};
+
+
+/* ===========================
+   HIỂN THỊ DANH SÁCH CON VẬT
+=========================== */
+
+const animalList = document.getElementById("animalList");
+for (let name in animals) {
+    const btn = document.createElement("button");
+    btn.textContent = name;
+    btn.onclick = () => loadAnimal(name);
+    animalList.appendChild(btn);
+}
+
+
+/* ===========================
+   HIỆN SVG LÊN KHUNG
+=========================== */
+
+function loadAnimal(name) {
+    document.getElementById("drawingArea").innerHTML = animals[name];
+    document.querySelectorAll("[data-part]").forEach(part => {
+        part.addEventListener("click", () => {
+            part.setAttribute("fill", currentColor);
+        });
+    });
+}
+
+
+/* ===========================
+   BẢNG MÀU
+=========================== */
+
+const colors = ["red","orange","yellow","green","cyan","blue","purple",
+                "pink","brown","gray","black","#ff66cc","#00cc66","#cc0000"];
+
+let currentColor = "black";
+
+const palette = document.getElementById("palette");
+colors.forEach(c=>{
+    const box = document.createElement("div");
+    box.className="color-box";
+    box.style.background=c;
+    box.onclick=()=>{ currentColor=c; };
+    palette.appendChild(box);
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Trang Chủ – Trò Chơi Tô Màu</title>
+
+<style>
+    body {
+        margin: 0;
+        font-family: "Comic Sans MS", Arial;
+        background: linear-gradient(135deg, #FFDEE9, #B5FFFC);
+        overflow: hidden;
+    }
+
+    /* Tiêu đề */
+    .center-area {
+        position: relative;
+        z-index: 10;
+        text-align: center;
+        padding-top: 40px;
+    }
+
+    h1 {
+        font-size: 50px;
+        color: #FF4F7B;
+        text-shadow: 3px 3px #fff;
+        margin-bottom: 10px;
+    }
+
+    h2 {
+        font-size: 26px;
+        margin-top: 0;
+        color: #444;
+    }
+
+    /* Khung trắng */
+    .card {
+        background: white;
+        padding: 30px;
+        border-radius: 25px;
+        width: 350px;
+        margin: 0 auto;
+        border: 5px solid #FFD1DC;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    }
+
+    /* Nút bắt đầu */
+    .start-btn {
+        display: inline-block;
+        padding: 18px 30px;
+        margin-top: 20px;
+        font-size: 24px;
+        font-weight: bold;
+        border-radius: 50px;
+        border: 4px solid #FF6FAE;
+        background: #FF9BCF;
+        color: white;
+        cursor: pointer;
+        transition: 0.2s;
+        box-shadow: 3px 5px 0px #FF4F8B;
+    }
+    .start-btn:hover {
+        transform: scale(1.07);
+        box-shadow: 3px 5px 0px #D32C72;
+    }
+
+    .animal-icons {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 20px;
+    }
+    .animal-icons img {
+        width: 80px;
+        height: 80px;
+        filter: drop-shadow(2px 3px 2px rgba(0,0,0,0.2));
+    }
+
+    /* ⭐ Mưa sao */
+    .star {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        background: yellow;
+        clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 
+                           50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+        opacity: 0.9;
+        animation: fall linear infinite;
+    }
+    @keyframes fall {
+        to { transform: translateY(110vh) rotate(360deg); opacity:0; }
+    }
+
+    /* 🎈 Bóng bay */
+    .balloon {
+        position: absolute;
+        width: 40px;
+        height: 55px;
+        background: radial-gradient(circle at 50% 30%, #fff, #ff7eb3);
+        border-radius: 50%;
+        animation: floatUp linear infinite;
+    }
+    @keyframes floatUp {
+        0% { transform: translateY(110vh); }
+        100% { transform: translateY(-20vh); }
+    }
+</style>
+</head>
+<body>
+
+<div class="center-area">
+
+    <h1>🎨 Trò Chơi Tô Màu</h1>
+    <h2>Thế giới động vật dễ thương dành cho bé</h2>
+
+    <div class="card">
+        <div class="animal-icons">
+            <img src="https://img.icons8.com/color/96/cat.png">
+            <img src="https://img.icons8.com/color/96/dog.png">
+            <img src="https://img.icons8.com/color/96/rabbit.png">
+            <img src="https://img.icons8.com/color/96/chicken.png">
+        </div>
+
+        <button class="start-btn" onclick="location.href='tomau.html'">
+            ▶ Bắt đầu tô màu
+        </button>
+    </div>
+
+</div>
+
+<script>
+/* ========================
+   ⭐ HIỆU ỨNG MƯA SAO
+======================== */
+function createStar() {
+    const star = document.createElement("div");
+    star.className = "star";
+
+    star.style.left = Math.random() * 100 + "vw";
+    star.style.top = "-10px";
+    star.style.animationDuration = (3 + Math.random() * 3) + "s";
+    star.style.opacity = Math.random();
+
+    document.body.appendChild(star);
+
+    setTimeout(() => star.remove(), 6000);
+}
+setInterval(createStar, 200);
+
+
+/* ========================
+   🎈 HIỆU ỨNG BÓNG BAY
+======================== */
+function createBalloon() {
+    const b = document.createElement("div");
+    b.className = "balloon";
+
+    b.style.left = Math.random() * 100 + "vw";
+    b.style.background = "radial-gradient(circle at 50% 30%, white, " +
+        ["#ff7eb3","#ffd36b","#90e0ef","#b388ff","#ff6f91"][Math.floor(Math.random()*5)] + ")";
+
+    b.style.animationDuration = (6 + Math.random() * 4) + "s";
+
+    document.body.appendChild(b);
+    setTimeout(() => b.remove(), 10000);
+}
+setInterval(createBalloon, 800);
+</script>
+
+</body>
+</html>

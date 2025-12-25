@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bé Học Vẽ Số - Trò Chơi Sáng Tạo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #f0f9ff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: none;
+            user-select: none;
+        }
+        .color-swatch {
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        .color-swatch:hover {
+            transform: scale(1.1);
+        }
+        .color-swatch.active {
+            border: 4px solid #333;
+            transform: scale(1.1);
+        }
+        .number-option {
+            cursor: pointer;
+            transition: all 0.2s;
+            border-width: 4px;
+        }
+        .number-option:hover {
+            transform: translateY(-5px);
+            border-color: #93c5fd;
+        }
+        .number-option.active {
+            border-color: #ec4899;
+            background-color: #fce7f3;
+        }
+        .dot {
+            transition: background-color 0.1s ease, transform 0.2s;
+            pointer-events: none;
+        }
+        .dot.active {
+            transform: scale(1.6);
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        }
+        .number-list::-webkit-scrollbar {
+            height: 8px;
+        }
+        .number-list::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        #drawing-area {
+            position: relative;
+            cursor: crosshair;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center min-h-screen p-4">
+
+    <!-- Header -->
+    <header class="text-center mb-6">
+        <h1 class="text-4xl font-bold text-pink-500 drop-shadow-md">🔢 Bé Học Vẽ Số 🔢</h1>
+        <p class="text-blue-600 font-medium">Di chuyển theo các chấm mờ để tạo nên những con số tròn xinh nhé!</p>
+    </header>
+
+    <!-- Number Selector -->
+    <div class="number-list flex gap-4 mb-6 overflow-x-auto pb-4 w-full max-w-4xl px-4">
+        <!-- JS tạo danh sách từ 1-9 -->
+    </div>
+
+    <!-- Main Area -->
+    <div class="w-full max-w-5xl bg-white rounded-3xl shadow-2xl p-6 flex flex-col md:flex-row gap-8 items-center border-8 border-yellow-300">
+        
+        <!-- Palette -->
+        <div class="flex md:flex-col flex-wrap justify-center gap-3 w-full md:w-32">
+            <div id="palette" class="grid grid-cols-4 md:grid-cols-2 gap-2"></div>
+            <button id="resetBtn" class="mt-4 bg-red-400 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-full shadow-lg transition text-xs uppercase tracking-wider">
+                Vẽ Lại 🔄
+            </button>
+        </div>
+
+        <!-- Canvas Area -->
+        <div id="canvas-container" class="relative flex-1 flex justify-center items-center bg-gray-50 rounded-xl border-4 border-dashed border-blue-200 p-4 w-full h-[450px] overflow-hidden">
+            <div id="drawing-area" class="w-[300px] h-[400px] bg-white rounded-lg shadow-inner">
+                <!-- Chấm mờ sẽ được render tại đây -->
+            </div>
+        </div>
+    </div>
+
+    <div id="message" class="mt-6 text-xl font-bold text-purple-600 opacity-0 transition-opacity duration-500">
+        Bé vẽ số tuyệt quá! Chữ số thật là đẹp! 🎉
+    </div>
+
+    <script>
+        const colors = [
+            '#FF0000', '#FF7F00', '#FFD700', '#22C55E', 
+            '#3B82F6', '#6366F1', '#A855F7', '#EC4899',
+            '#F43F5E', '#06B6D4', '#854D0E', '#10B981',
+            '#64748B', '#000000', '#FF9F66', '#FFB6C1'
+        ];
+
+        let selectedColor = colors[0];
+        let currentNumber = 1;
+        let isDrawing = false;
+        
+        /**
+         * Định nghĩa đường đi bằng Bezier bậc 2 để số mềm mại hơn
+         * [x_start, y_start, x_control, y_control, x_end, y_end]
+         */
+        const numberCurves = {
+            1: [[120, 110, 135, 80, 150, 60], [150, 60, 150, 210, 150, 360]],
+            2: [[100, 120, 150, 30, 200, 120], [200, 120, 180, 250, 100, 360], [100, 360, 150, 360, 200, 360]],
+            3: [[100, 90, 150, 40, 200, 90], [200, 90, 180, 180, 140, 180], [140, 180, 220, 180, 220, 270], [220, 270, 180, 360, 100, 320]],
+            4: [[180, 360, 180, 210, 180, 60], [180, 60, 130, 150, 80, 240], [80, 240, 155, 240, 230, 240]],
+            5: [[210, 70, 160, 70, 110, 70], [110, 70, 105, 125, 100, 180], [100, 180, 220, 160, 210, 280], [210, 280, 180, 360, 90, 320]],
+            6: [[180, 70, 120, 100, 100, 180], [100, 180, 80, 340, 150, 350], [150, 350, 220, 340, 210, 250], [210, 250, 200, 170, 110, 185]],
+            7: [[90, 80, 150, 80, 210, 80], [210, 80, 165, 220, 120, 360]],
+            8: [[150, 180, 80, 150, 150, 60], [150, 60, 220, 150, 150, 180], [150, 180, 80, 210, 150, 350], [150, 350, 220, 210, 150, 180]],
+            9: [[150, 210, 220, 210, 210, 120], [210, 120, 200, 40, 120, 60], [120, 60, 80, 110, 150, 210], [150, 210, 180, 260, 160, 360], [160, 360, 140, 365, 110, 350]]
+        };
+
+        const paletteEl = document.getElementById('palette');
+        const numberListEl = document.querySelector('.number-list');
+        const drawingArea = document.getElementById('drawing-area');
+        const messageEl = document.getElementById('message');
+
+        function initPalette() {
+            colors.forEach((color, index) => {
+                const swatch = document.createElement('div');
+                swatch.className = `color-swatch w-10 h-10 rounded-full border-2 border-white shadow-md ${index === 0 ? 'active' : ''}`;
+                swatch.style.backgroundColor = color;
+                swatch.onclick = () => {
+                    document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+                    swatch.classList.add('active');
+                    selectedColor = color;
+                };
+                paletteEl.appendChild(swatch);
+            });
+        }
+
+        function initNumbers() {
+            for (let i = 1; i <= 9; i++) {
+                const opt = document.createElement('div');
+                opt.id = `num-opt-${i}`;
+                opt.className = `number-option flex flex-col items-center p-3 rounded-2xl bg-white min-w-[80px] shadow-sm ${i === 1 ? 'active' : ''}`;
+                opt.innerHTML = `<span class="text-3xl font-bold text-gray-700">${i}</span>`;
+                opt.onclick = () => switchNumber(i);
+                numberListEl.appendChild(opt);
+            }
+        }
+
+        function switchNumber(num) {
+            currentNumber = num;
+            document.querySelectorAll('.number-option').forEach(el => el.classList.remove('active'));
+            document.getElementById(`num-opt-${num}`).classList.add('active');
+            renderDots();
+            messageEl.style.opacity = '0';
+        }
+
+        // Hàm nội suy Bezier bậc 2 để tạo các điểm mịn
+        function getQuadraticBezierXYatT(startPt, controlPt, endPt, T) {
+            const x = Math.pow(1 - T, 2) * startPt.x + 2 * (1 - T) * T * controlPt.x + Math.pow(T, 2) * endPt.x;
+            const y = Math.pow(1 - T, 2) * startPt.y + 2 * (1 - T) * T * controlPt.y + Math.pow(T, 2) * endPt.y;
+            return { x: x, y: y };
+        }
+
+        function renderDots() {
+            drawingArea.innerHTML = '';
+            const curves = numberCurves[currentNumber];
+            
+            curves.forEach(curve => {
+                const start = { x: curve[0], y: curve[1] };
+                const control = { x: curve[2], y: curve[3] };
+                const end = { x: curve[4], y: curve[5] };
+                
+                // Tính toán số bước dựa trên độ dài ước tính của đường cong
+                const steps = 25; 
+                
+                for (let i = 0; i <= steps; i++) {
+                    const t = i / steps;
+                    const pos = getQuadraticBezierXYatT(start, control, end, t);
+                    
+                    const dot = document.createElement('div');
+                    dot.className = 'dot absolute w-2 h-2 rounded-full bg-gray-100 border border-gray-50';
+                    dot.style.left = `${pos.x}px`;
+                    dot.style.top = `${pos.y}px`;
+                    dot.dataset.filled = "false";
+                    drawingArea.appendChild(dot);
+                }
+            });
+        }
+
+        function handleInput(e) {
+            if (!isDrawing) return;
+            
+            const rect = drawingArea.getBoundingClientRect();
+            let clientX, clientY;
+
+            if (e.touches) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+
+            const dots = document.querySelectorAll('.dot[data-filled="false"]');
+            dots.forEach(dot => {
+                const dotX = dot.offsetLeft + 4;
+                const dotY = dot.offsetTop + 4;
+
+                const dist = Math.sqrt(Math.pow(x - dotX, 2) + Math.pow(y - dotY, 2));
+                
+                if (dist < 18) {
+                    dot.style.backgroundColor = selectedColor;
+                    dot.style.borderColor = 'transparent';
+                    dot.classList.add('active');
+                    dot.dataset.filled = "true";
+                    checkWin();
+                }
+            });
+        }
+
+        function checkWin() {
+            const unfilled = document.querySelector('.dot[data-filled="false"]');
+            if (!unfilled) {
+                messageEl.style.opacity = '1';
+            }
+        }
+
+        window.addEventListener('mousedown', () => isDrawing = true);
+        window.addEventListener('mouseup', () => isDrawing = false);
+        window.addEventListener('touchstart', (e) => {
+            isDrawing = true;
+            handleInput(e);
+        });
+        window.addEventListener('touchend', () => isDrawing = false);
+
+        drawingArea.addEventListener('mousemove', handleInput);
+        drawingArea.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            handleInput(e);
+        });
+
+        document.getElementById('resetBtn').onclick = () => {
+            renderDots();
+            messageEl.style.opacity = '0';
+        };
+
+        initPalette();
+        initNumbers();
+        switchNumber(1);
+    </script>
+</body>
+</html>

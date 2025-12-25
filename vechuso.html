@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Bé Học Vẽ Số - Trò Chơi Sáng Tạo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -11,13 +11,11 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             touch-action: none;
             user-select: none;
+            overflow-x: hidden;
         }
         .color-swatch {
             transition: transform 0.2s;
             cursor: pointer;
-        }
-        .color-swatch:hover {
-            transform: scale(1.1);
         }
         .color-swatch.active {
             border: 4px solid #333;
@@ -28,10 +26,6 @@
             transition: all 0.2s;
             border-width: 4px;
         }
-        .number-option:hover {
-            transform: translateY(-5px);
-            border-color: #93c5fd;
-        }
         .number-option.active {
             border-color: #ec4899;
             background-color: #fce7f3;
@@ -39,59 +33,69 @@
         .dot {
             transition: background-color 0.1s ease, transform 0.2s;
             pointer-events: none;
+            position: absolute;
+            transform: translate(-50%, -50%); /* Căn giữa chấm tại tọa độ */
         }
         .dot.active {
-            transform: scale(1.6);
+            transform: translate(-50%, -50%) scale(1.8);
             box-shadow: 0 0 5px rgba(0,0,0,0.1);
         }
+        /* Ẩn thanh cuộn nhưng vẫn cho phép cuộn ngang */
         .number-list::-webkit-scrollbar {
-            height: 8px;
+            display: none;
         }
-        .number-list::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
+        .number-list {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
         #drawing-area {
             position: relative;
             cursor: crosshair;
+            width: 100%;
+            height: 100%;
+            max-width: 300px; /* Giới hạn độ rộng để số không bị quá bè */
+            max-height: 400px;
+            aspect-ratio: 3/4;
         }
     </style>
 </head>
-<body class="flex flex-col items-center min-h-screen p-4">
+<body class="flex flex-col items-center min-h-screen p-2 md:p-4">
 
     <!-- Header -->
-    <header class="text-center mb-6">
-        <h1 class="text-4xl font-bold text-pink-500 drop-shadow-md">🔢 Bé Học Vẽ Số 🔢</h1>
-        <p class="text-blue-600 font-medium">Di chuyển theo các chấm mờ để tạo nên những con số tròn xinh nhé!</p>
+    <header class="text-center mb-4 md:mb-6">
+        <h1 class="text-2xl md:text-4xl font-bold text-pink-500 drop-shadow-md">🔢 Bé Học Vẽ Số 🔢</h1>
     </header>
 
     <!-- Number Selector -->
-    <div class="number-list flex gap-4 mb-6 overflow-x-auto pb-4 w-full max-w-4xl px-4">
+    <div class="number-list flex gap-3 mb-4 overflow-x-auto pb-2 w-full max-w-4xl px-2">
         <!-- JS tạo danh sách từ 1-9 -->
     </div>
 
     <!-- Main Area -->
-    <div class="w-full max-w-5xl bg-white rounded-3xl shadow-2xl p-6 flex flex-col md:flex-row gap-8 items-center border-8 border-yellow-300">
+    <div class="w-full max-w-4xl bg-white rounded-2xl md:rounded-3xl shadow-xl p-3 md:p-6 flex flex-col md:flex-row gap-4 md:gap-8 items-center border-4 md:border-8 border-yellow-300">
         
         <!-- Palette -->
-        <div class="flex md:flex-col flex-wrap justify-center gap-3 w-full md:w-32">
-            <div id="palette" class="grid grid-cols-4 md:grid-cols-2 gap-2"></div>
-            <button id="resetBtn" class="mt-4 bg-red-400 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-full shadow-lg transition text-xs uppercase tracking-wider">
+        <div class="flex md:flex-col flex-wrap justify-center gap-2 w-full md:w-32 order-2 md:order-1">
+            <div id="palette" class="grid grid-cols-8 md:grid-cols-2 gap-1.5 md:gap-2"></div>
+            <button id="resetBtn" class="w-full md:mt-4 bg-red-400 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-full shadow-lg transition text-xs uppercase">
                 Vẽ Lại 🔄
             </button>
         </div>
 
         <!-- Canvas Area -->
-        <div id="canvas-container" class="relative flex-1 flex justify-center items-center bg-gray-50 rounded-xl border-4 border-dashed border-blue-200 p-4 w-full h-[450px] overflow-hidden">
-            <div id="drawing-area" class="w-[300px] h-[400px] bg-white rounded-lg shadow-inner">
+        <div id="canvas-container" class="relative flex-1 flex justify-center items-center bg-gray-50 rounded-xl border-2 md:border-4 border-dashed border-blue-200 p-2 w-full min-h-[350px] md:h-[450px] order-1 md:order-2">
+            <div id="drawing-area" class="bg-white rounded-lg shadow-inner">
                 <!-- Chấm mờ sẽ được render tại đây -->
             </div>
         </div>
     </div>
 
-    <div id="message" class="mt-6 text-xl font-bold text-purple-600 opacity-0 transition-opacity duration-500">
-        Bé vẽ số tuyệt quá! Chữ số thật là đẹp! 🎉
+    <div id="message" class="mt-4 text-lg md:text-xl font-bold text-purple-600 opacity-0 transition-opacity duration-500">
+        Bé vẽ số tuyệt quá! 🎉
     </div>
+
+    <!-- Nút quay về trang chủ -->
+    <a href="index.html" class="mt-4 text-blue-500 font-bold underline">◀ Quay về trang chủ</a>
 
     <script>
         const colors = [
@@ -105,10 +109,7 @@
         let currentNumber = 1;
         let isDrawing = false;
         
-        /**
-         * Định nghĩa đường đi bằng Bezier bậc 2 để số mềm mại hơn
-         * [x_start, y_start, x_control, y_control, x_end, y_end]
-         */
+        // Tọa độ gốc dựa trên khung 300x400
         const numberCurves = {
             1: [[120, 110, 135, 80, 150, 60], [150, 60, 150, 210, 150, 360]],
             2: [[100, 120, 150, 30, 200, 120], [200, 120, 180, 250, 100, 360], [100, 360, 150, 360, 200, 360]],
@@ -129,7 +130,7 @@
         function initPalette() {
             colors.forEach((color, index) => {
                 const swatch = document.createElement('div');
-                swatch.className = `color-swatch w-10 h-10 rounded-full border-2 border-white shadow-md ${index === 0 ? 'active' : ''}`;
+                swatch.className = `color-swatch w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white shadow-md ${index === 0 ? 'active' : ''}`;
                 swatch.style.backgroundColor = color;
                 swatch.onclick = () => {
                     document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
@@ -143,9 +144,9 @@
         function initNumbers() {
             for (let i = 1; i <= 9; i++) {
                 const opt = document.createElement('div');
+                opt.className = `number-option flex flex-col items-center p-2 md:p-3 rounded-xl bg-white min-w-[60px] md:min-w-[80px] shadow-sm ${i === 1 ? 'active' : ''}`;
                 opt.id = `num-opt-${i}`;
-                opt.className = `number-option flex flex-col items-center p-3 rounded-2xl bg-white min-w-[80px] shadow-sm ${i === 1 ? 'active' : ''}`;
-                opt.innerHTML = `<span class="text-3xl font-bold text-gray-700">${i}</span>`;
+                opt.innerHTML = `<span class="text-2xl md:text-3xl font-bold text-gray-700">${i}</span>`;
                 opt.onclick = () => switchNumber(i);
                 numberListEl.appendChild(opt);
             }
@@ -159,7 +160,6 @@
             messageEl.style.opacity = '0';
         }
 
-        // Hàm nội suy Bezier bậc 2 để tạo các điểm mịn
         function getQuadraticBezierXYatT(startPt, controlPt, endPt, T) {
             const x = Math.pow(1 - T, 2) * startPt.x + 2 * (1 - T) * T * controlPt.x + Math.pow(T, 2) * endPt.x;
             const y = Math.pow(1 - T, 2) * startPt.y + 2 * (1 - T) * T * controlPt.y + Math.pow(T, 2) * endPt.y;
@@ -170,20 +170,23 @@
             drawingArea.innerHTML = '';
             const curves = numberCurves[currentNumber];
             
+            // Lấy kích thước thực tế của drawingArea để tính tỷ lệ
+            const rect = drawingArea.getBoundingClientRect();
+            const scaleX = rect.width / 300;
+            const scaleY = rect.height / 400;
+
             curves.forEach(curve => {
-                const start = { x: curve[0], y: curve[1] };
-                const control = { x: curve[2], y: curve[3] };
-                const end = { x: curve[4], y: curve[5] };
+                const start = { x: curve[0] * scaleX, y: curve[1] * scaleY };
+                const control = { x: curve[2] * scaleX, y: curve[3] * scaleY };
+                const end = { x: curve[4] * scaleX, y: curve[5] * scaleY };
                 
-                // Tính toán số bước dựa trên độ dài ước tính của đường cong
                 const steps = 25; 
-                
                 for (let i = 0; i <= steps; i++) {
                     const t = i / steps;
                     const pos = getQuadraticBezierXYatT(start, control, end, t);
                     
                     const dot = document.createElement('div');
-                    dot.className = 'dot absolute w-2 h-2 rounded-full bg-gray-100 border border-gray-50';
+                    dot.className = 'dot w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-gray-100 border border-gray-50';
                     dot.style.left = `${pos.x}px`;
                     dot.style.top = `${pos.y}px`;
                     dot.dataset.filled = "false";
@@ -209,14 +212,17 @@
             const x = clientX - rect.left;
             const y = clientY - rect.top;
 
+            // Bán kính va chạm linh hoạt theo kích thước màn hình
+            const hitRadius = rect.width < 400 ? 15 : 20;
+
             const dots = document.querySelectorAll('.dot[data-filled="false"]');
             dots.forEach(dot => {
-                const dotX = dot.offsetLeft + 4;
-                const dotY = dot.offsetTop + 4;
+                const dotX = parseFloat(dot.style.left);
+                const dotY = parseFloat(dot.style.top);
 
                 const dist = Math.sqrt(Math.pow(x - dotX, 2) + Math.pow(y - dotY, 2));
                 
-                if (dist < 18) {
+                if (dist < hitRadius) {
                     dot.style.backgroundColor = selectedColor;
                     dot.style.borderColor = 'transparent';
                     dot.classList.add('active');
@@ -233,6 +239,18 @@
             }
         }
 
+        // Khởi tạo và xử lý Resize
+        window.addEventListener('load', () => {
+            initPalette();
+            initNumbers();
+            switchNumber(1);
+        });
+
+        window.addEventListener('resize', () => {
+            switchNumber(currentNumber); // Vẽ lại các chấm khi xoay màn hình hoặc đổi kích thước
+        });
+
+        // Event Listeners
         window.addEventListener('mousedown', () => isDrawing = true);
         window.addEventListener('mouseup', () => isDrawing = false);
         window.addEventListener('touchstart', (e) => {
@@ -243,18 +261,14 @@
 
         drawingArea.addEventListener('mousemove', handleInput);
         drawingArea.addEventListener('touchmove', (e) => {
-            e.preventDefault();
+            if (e.cancelable) e.preventDefault();
             handleInput(e);
-        });
+        }, { passive: false });
 
         document.getElementById('resetBtn').onclick = () => {
             renderDots();
             messageEl.style.opacity = '0';
         };
-
-        initPalette();
-        initNumbers();
-        switchNumber(1);
     </script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Thế Giới Sáng Tạo Của Bé</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&display=swap" rel="stylesheet">
@@ -10,9 +10,11 @@
         body {
             font-family: 'Comfortaa', cursive;
             background: linear-gradient(to bottom, #87CEEB, #E0F7FA);
-            overflow: hidden;
             margin: 0;
-            height: 100vh;
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
         /* Hiệu ứng mây trôi */
@@ -22,6 +24,8 @@
             border-radius: 100px;
             opacity: 0.8;
             animation: moveClouds linear infinite;
+            pointer-events: none;
+            z-index: 0;
         }
         .cloud::after, .cloud::before {
             content: '';
@@ -29,108 +33,104 @@
             background: white;
             border-radius: 100px;
         }
-        .cloud:nth-child(1) { width: 100px; height: 40px; top: 10%; left: -150px; animation-duration: 20s; }
-        .cloud:nth-child(2) { width: 150px; height: 60px; top: 20%; left: -200px; animation-duration: 35s; }
-        .cloud:nth-child(3) { width: 120px; height: 50px; top: 15%; left: -100px; animation-duration: 25s; }
-
+        
         @keyframes moveClouds {
-            from { transform: translateX(0); }
-            to { transform: translateX(calc(100vw + 300px)); }
+            from { transform: translateX(-200px); }
+            to { transform: translateX(calc(100vw + 200px)); }
         }
 
-        /* Bong bóng bay */
+        /* Hiệu ứng bong bóng */
         .bubble {
             position: absolute;
             bottom: -50px;
             background: rgba(255, 255, 255, 0.3);
-            border: 2px solid rgba(255, 255, 255, 0.5);
             border-radius: 50%;
-            animation: floatUp linear infinite;
+            animation: rise 10s infinite ease-in;
+            pointer-events: none;
+            z-index: 0;
         }
 
-        @keyframes floatUp {
-            to { transform: translateY(-110vh) translateX(50px); opacity: 0; }
+        @keyframes rise {
+            0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+            50% { opacity: 0.6; }
+            100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
         }
 
         .game-card {
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            cursor: pointer;
-        }
-        .game-card:hover {
-            transform: scale(1.1) rotate(2deg);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         
-        .sun {
-            position: absolute;
-            top: 40px;
-            right: 40px;
-            width: 80px;
-            height: 80px;
-            background: #FFD700;
-            border-radius: 50%;
-            box-shadow: 0 0 40px #FFD700;
-            animation: pulse 2s infinite alternate;
+        .game-card:hover {
+            transform: translateY(-10px) scale(1.02);
         }
 
-        @keyframes pulse {
-            from { transform: scale(1); }
-            to { transform: scale(1.1); }
+        .game-card:active {
+            transform: scale(0.95);
         }
 
-        .bounce {
-            animation: bounce 2s infinite;
-        }
-
-        @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
-            40% {transform: translateY(-20px);}
-            60% {transform: translateY(-10px);}
+        .grass {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            height: 40px;
+            background: #22c55e;
+            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+            z-index: 10;
         }
     </style>
 </head>
-<body class="flex flex-col items-center justify-center relative">
-
-    <!-- Trang trí nền -->
-    <div class="sun"></div>
-    <div class="cloud"></div>
-    <div class="cloud"></div>
-    <div class="cloud"></div>
+<body class="relative pb-16">
+    <!-- Nền động -->
+    <div id="cloud-container">
+        <div class="cloud" style="width: 120px; height: 45px; top: 15%; animation-duration: 25s; animation-delay: -5s;"></div>
+        <div class="cloud" style="width: 100px; height: 40px; top: 25%; animation-duration: 35s; animation-delay: -15s;"></div>
+        <div class="cloud" style="width: 150px; height: 55px; top: 5%; animation-duration: 30s; animation-delay: -2s;"></div>
+    </div>
     <div id="bubble-container"></div>
 
     <!-- Nội dung chính -->
-    <div class="z-10 text-center px-4">
-        <h1 class="text-5xl md:text-7xl font-bold text-white drop-shadow-[0_5px_5px_rgba(0,0,0,0.2)] mb-4 bounce">
-            <span class="text-pink-500">Coca</span><span class="text-yellow-500"> ❤️</span> <span class="text-blue-500">Bảo Ngân</span>
-        </h1>
-        <p class="text-xl md:text-2xl text-blue-800 font-bold mb-12 bg-white/50 py-2 px-6 rounded-full inline-block">
-            Bé muốn chơi gì hôm nay nào? ✨
-        </p>
+    <main class="relative z-20 flex flex-col items-center justify-center flex-1 px-4 py-8">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-6xl text-white drop-shadow-[0_4px_4px_rgba(0,0,0,0.25)] mb-2">
+                Chào Coca ❤️ ✨
+            </h1>
+            <p class="text-white text-lg md:text-xl bg-blue-400/30 px-6 py-1 rounded-full backdrop-blur-sm">
+                Bé muốn chơi gì hôm nay?
+            </p>
+        </header>
 
-        <div class="flex flex-col md:flex-row gap-10 justify-center items-center">
+        <!-- Lưới trò chơi -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 w-full max-w-4xl">
             
-            <!-- Nút Tô Màu -->
-            <a href="tomau.html" class="game-card group relative">+
-                <div class="w-64 h-64 bg-white rounded-[40px] shadow-2xl border-8 border-pink-400 flex flex-col items-center justify-center p-6 overflow-hidden">
-                    <div class="text-8xl mb-4 group-hover:scale-125 transition-transform">🎨</div>
-                    <span class="text-2xl font-bold text-pink-500">Bé Tập Tô Màu</span>
-                    <div class="absolute -bottom-2 -right-2 bg-pink-400 text-white p-2 rounded-tl-2xl font-bold">CHƠI NGAY</div>
+            <!-- Link 1: Tô màu -->
+            <a href="tomau.html" class="group">
+                <div class="game-card bg-white p-6 rounded-[2rem] shadow-2xl border-b-8 border-pink-200 relative overflow-hidden flex flex-col items-center">
+                    <div class="text-7xl mb-4 group-hover:rotate-12 transition-transform">🎨</div>
+                    <h2 class="text-2xl font-bold text-pink-500">Bé Tập Tô Màu</h2>
+                    <p class="text-gray-500 text-sm mt-1">Thế giới sắc màu rực rỡ</p>
+                    <div class="mt-4 bg-pink-400 text-white px-6 py-2 rounded-full font-bold shadow-md group-hover:bg-pink-500 transition-colors">
+                        CHƠI NGAY
+                    </div>
                 </div>
             </a>
 
-            <!-- Nút Vẽ Số -->
-            <a href="vechuso.html" class="game-card group relative">
-                <div class="w-64 h-64 bg-white rounded-[40px] shadow-2xl border-8 border-blue-400 flex flex-col items-center justify-center p-6 overflow-hidden">
-                    <div class="text-8xl mb-4 group-hover:scale-125 transition-transform">🔢</div>
-                    <span class="text-2xl font-bold text-blue-500">Bé Học Vẽ Số</span>
-                    <div class="absolute -bottom-2 -right-2 bg-blue-400 text-white p-2 rounded-tl-2xl font-bold">CHƠI NGAY</div>
+            <!-- Link 2: Vẽ số -->
+            <a href="vechuso.html" class="group">
+                <div class="game-card bg-white p-6 rounded-[2rem] shadow-2xl border-b-8 border-blue-200 relative overflow-hidden flex flex-col items-center">
+                    <div class="text-7xl mb-4 group-hover:-rotate-12 transition-transform">🔢</div>
+                    <h2 class="text-2xl font-bold text-blue-500">Bé Học Vẽ Số</h2>
+                    <p class="text-gray-500 text-sm mt-1">Làm quen với các con số</p>
+                    <div class="mt-4 bg-blue-400 text-white px-6 py-2 rounded-full font-bold shadow-md group-hover:bg-blue-500 transition-colors">
+                        CHƠI NGAY
+                    </div>
                 </div>
             </a>
 
         </div>
-    </div>
+    </main>
 
-    <!-- Cỏ ở dưới cùng -->
-    <div class="absolute bottom-0 w-full h-16 bg-green-500" style="border-radius: 50% 50% 0 0 / 20% 20% 0 0;"></div>
+    <!-- Cỏ trang trí -->
+    <div class="grass"></div>
 
     <script>
         // Tạo bong bóng ngẫu nhiên
@@ -147,8 +147,8 @@
                 bubble.style.height = size;
                 bubble.style.left = Math.random() * 100 + 'vw';
                 bubble.style.animationDuration = Math.random() * 5 + 5 + 's';
-                bubble.style.animationDelay = Math.random() * 5 + 's';
-                bubble.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                bubble.style.animationDelay = Math.random() * 10 + 's';
+                bubble.style.background = colors[Math.floor(Math.random() * colors.length)] + '4D';
                 
                 container.appendChild(bubble);
             }

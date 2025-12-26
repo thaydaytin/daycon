@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bé Ghép Hình Khối - Phiên Bản Tự Động Chuyển Màn</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #FFF9E3;
+            --accent: #FF85A1;
+        }
+
+        body {
+            font-family: 'Comfortaa', cursive;
+            background-color: var(--bg-main);
+            background-image: 
+                radial-gradient(#FFD1DC 3px, transparent 3px),
+                radial-gradient(#D1E9FF 3px, transparent 3px);
+            background-size: 50px 50px;
+            background-position: 0 0, 25px 25px;
+            touch-action: none;
+            user-select: none;
+            overflow: hidden;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .shape-container {
+            position: absolute;
+            cursor: grab;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2));
+            z-index: 100;
+            will-change: transform, left, top;
+        }
+
+        .shape-container:active {
+            cursor: grabbing;
+            transform: scale(1.2) rotate(3deg);
+            z-index: 1000;
+        }
+
+        .slot {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.6);
+            border: 5px dashed rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            border-radius: 30px;
+            transition: all 0.3s ease;
+        }
+
+        .slot-filled {
+            background: #ffffff !important;
+            border: 5px solid #FF85A1 !important;
+            box-shadow: 0 15px 30px rgba(255, 133, 161, 0.3);
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); }
+            70% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+
+        #celebration {
+            display: none;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            pointer-events: none; /* Không cản trở tương tác nếu lỡ hiện */
+        }
+
+        .header-btn {
+            box-shadow: 0 6px 0 #ddd;
+            transition: all 0.1s;
+        }
+        .header-btn:active {
+            box-shadow: 0 2px 0 #ddd;
+            transform: translateY(4px);
+        }
+
+        /* Thông báo nhỏ khi xong màn */
+        .toast-win {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 2rem 4rem;
+            border-radius: 3rem;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+            border-bottom: 10px solid #FF85A1;
+            z-index: 2500;
+            display: none;
+            text-align: center;
+            animation: toastIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes toastIn {
+            0% { opacity: 0; transform: translate(-50%, -30%); }
+            100% { opacity: 1; transform: translate(-50%, -50%); }
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center">
+
+    <!-- Header -->
+    <div class="w-full p-4 flex justify-between items-center z-50">
+        <a href="index.html" class="header-btn bg-white w-14 h-14 flex items-center justify-center rounded-2xl text-3xl">🏠</a>
+        <div class="bg-white px-10 py-3 rounded-full shadow-xl border-b-8 border-yellow-200">
+            <span class="text-orange-400 font-bold text-xl">MÀN: </span>
+            <span id="level-text" class="text-blue-500 font-black text-3xl">1</span>
+        </div>
+        <div class="w-14"></div>
+    </div>
+
+    <div class="text-center mt-2 px-4 z-50">
+        <h2 class="text-2xl md:text-4xl text-pink-500 font-bold drop-shadow-sm">Bé kéo hình vào ô cùng loại nhé! ✨</h2>
+    </div>
+
+    <!-- Khu vực chơi -->
+    <div id="game-canvas" class="relative w-full flex-1 overflow-hidden">
+        <!-- Render bởi JavaScript -->
+    </div>
+
+    <!-- Thông báo chiến thắng tạm thời -->
+    <div id="win-toast" class="toast-win">
+        <div class="text-6xl mb-2">🌟</div>
+        <h2 class="text-4xl font-black text-pink-500">GIỎI QUÁ!</h2>
+        <p class="text-xl text-blue-400 font-bold">Chuẩn bị màn tiếp theo...</p>
+    </div>
+
+    <!-- Hiệu ứng pháo hoa/sao khi thắng -->
+    <div id="celebration" class="fixed inset-0 z-[2000]"></div>
+
+    <script>
+        // Hệ thống âm thanh
+        const sounds = {
+            pop: new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'),
+            ding: new Audio('https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3'),
+            boing: new Audio('https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3'),
+            win: new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3')
+        };
+
+        function playSound(name) {
+            const sound = sounds[name];
+            if (sound) {
+                sound.currentTime = 0;
+                sound.play().catch(e => console.log("Audio play blocked"));
+            }
+        }
+
+        const canvas = document.getElementById('game-canvas');
+        const levelText = document.getElementById('level-text');
+        const celebration = document.getElementById('celebration');
+        const winToast = document.getElementById('win-toast');
+        
+        let level = 1;
+        let filledCount = 0;
+        let activeDrag = null;
+        let offset = { x: 0, y: 0 };
+        let isTransitioning = false; // Ngăn kéo thả khi đang chuyển màn
+
+        const SHAPES = [
+            { type: 'circle', svg: (color) => `<svg width="100%" height="100%" viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="${color}" stroke="white" stroke-width="5"/></svg>` },
+            { type: 'square', svg: (color) => `<svg width="100%" height="100%" viewBox="0 0 100 100"><rect x="8" y="8" width="84" height="84" rx="18" fill="${color}" stroke="white" stroke-width="5"/></svg>` },
+            { type: 'triangle', svg: (color) => `<svg width="100%" height="100%" viewBox="0 0 100 100"><path d="M50 8 L92 88 L8 88 Z" fill="${color}" stroke="white" stroke-width="5" stroke-linejoin="round"/></svg>` },
+            { type: 'star', svg: (color) => `<svg width="100%" height="100%" viewBox="0 0 100 100"><path d="M50 5 L63 38 L98 38 L70 59 L81 93 L50 72 L19 93 L30 59 L2 38 L37 38 Z" fill="${color}" stroke="white" stroke-width="5" stroke-linejoin="round"/></svg>` }
+        ];
+
+        const COLORS = ['#FF6B6B', '#4ECDC4', '#FFD93D', '#FF9F43', '#A55EEA', '#26DE81', '#FD79A8', '#74B9FF'];
+
+        function initLevel() {
+            canvas.innerHTML = '';
+            celebration.style.display = 'none';
+            winToast.style.display = 'none';
+            filledCount = 0;
+            isTransitioning = false;
+            
+            const shapesCount = Math.min(2 + Math.floor(level / 2), 4);
+            levelText.textContent = level;
+            
+            const canvasRect = canvas.getBoundingClientRect();
+            const size = Math.min(canvasRect.width / (shapesCount + 0.5), 140);
+
+            const levelShapeTypes = [];
+            for(let i=0; i<shapesCount; i++) {
+                levelShapeTypes.push(SHAPES[Math.floor(Math.random() * SHAPES.length)]);
+            }
+
+            // 1. Tạo các Ô TRỐNG
+            levelShapeTypes.forEach((shape, i) => {
+                const slot = document.createElement('div');
+                slot.className = 'slot';
+                slot.style.width = size + 'px';
+                slot.style.height = size + 'px';
+                slot.innerHTML = shape.svg('rgba(0,0,0,0.05)');
+                
+                const x = (canvasRect.width / (shapesCount + 1)) * (i + 1) - (size / 2);
+                const y = canvasRect.height * 0.2; 
+                
+                slot.style.left = x + 'px';
+                slot.style.top = y + 'px';
+                slot.dataset.type = shape.type;
+                slot.dataset.occupied = "false";
+                canvas.appendChild(slot);
+            });
+
+            // 2. Tạo các KHỐI MÀU
+            const shuffledShapes = [...levelShapeTypes].sort(() => Math.random() - 0.5);
+            shuffledShapes.forEach((shape, i) => {
+                const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+                const dragEl = document.createElement('div');
+                dragEl.className = 'shape-container';
+                dragEl.style.width = size + 'px';
+                dragEl.style.height = size + 'px';
+                dragEl.innerHTML = shape.svg(color);
+                
+                const startX = (canvasRect.width / (shapesCount + 1)) * (i + 1) - (size / 2);
+                const startY = canvasRect.height * 0.65;
+                
+                dragEl.style.left = startX + 'px';
+                dragEl.style.top = startY + 'px';
+                dragEl.dataset.type = shape.type;
+                dragEl.dataset.color = color;
+                dragEl.dataset.homeX = startX;
+                dragEl.dataset.homeY = startY;
+                
+                addDragListeners(dragEl);
+                canvas.appendChild(dragEl);
+            });
+        }
+
+        function addDragListeners(el) {
+            const onStart = (e) => {
+                if (isTransitioning) return;
+                playSound('pop');
+                activeDrag = el;
+                const touch = e.type.includes('touch') ? e.touches[0] : e;
+                const rect = el.getBoundingClientRect();
+                
+                offset.x = touch.clientX - rect.left;
+                offset.y = touch.clientY - rect.top;
+                
+                el.style.transition = 'none';
+            };
+
+            el.addEventListener('mousedown', onStart);
+            el.addEventListener('touchstart', onStart, { passive: false });
+        }
+
+        const onMove = (e) => {
+            if (!activeDrag || isTransitioning) return;
+            e.preventDefault();
+            
+            const touch = e.type.includes('touch') ? e.touches[0] : e;
+            const canvasRect = canvas.getBoundingClientRect();
+            
+            let x = touch.clientX - offset.x - canvasRect.left;
+            let y = touch.clientY - offset.y - canvasRect.top;
+
+            activeDrag.style.left = x + 'px';
+            activeDrag.style.top = y + 'px';
+        };
+
+        const onEnd = () => {
+            if (!activeDrag || isTransitioning) return;
+            
+            const dragRect = activeDrag.getBoundingClientRect();
+            const canvasRect = canvas.getBoundingClientRect();
+            const centerX = dragRect.left + dragRect.width / 2;
+            const centerY = dragRect.top + dragRect.height / 2;
+            
+            const slots = document.querySelectorAll('.slot[data-occupied="false"]');
+            let success = false;
+
+            for (let slot of slots) {
+                const sRect = slot.getBoundingClientRect();
+                const sCenterX = sRect.left + sRect.width / 2;
+                const sCenterY = sRect.top + sRect.height / 2;
+                
+                const distance = Math.sqrt(Math.pow(centerX - sCenterX, 2) + Math.pow(centerY - sCenterY, 2));
+
+                if (distance < 90 && slot.dataset.type === activeDrag.dataset.type) {
+                    playSound('ding');
+                    slot.dataset.occupied = "true";
+                    slot.classList.add('slot-filled');
+                    slot.innerHTML = SHAPES.find(s => s.type === activeDrag.dataset.type).svg(activeDrag.dataset.color);
+                    
+                    activeDrag.remove();
+                    filledCount++;
+                    success = true;
+                    checkWin();
+                    break;
+                }
+            }
+
+            if (!success) {
+                playSound('boing');
+                activeDrag.style.transition = 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                activeDrag.style.left = activeDrag.dataset.homeX + 'px';
+                activeDrag.style.top = activeDrag.dataset.homeY + 'px';
+            }
+
+            activeDrag = null;
+        };
+
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('touchmove', onMove, { passive: false });
+        window.addEventListener('mouseup', onEnd);
+        window.addEventListener('touchend', onEnd);
+
+        function checkWin() {
+            const total = Math.min(2 + Math.floor(level / 2), 4);
+            if (filledCount === total) {
+                isTransitioning = true; // Ngăn bé tương tác thêm
+                setTimeout(() => {
+                    playSound('win');
+                    celebration.style.display = 'block';
+                    winToast.style.display = 'block';
+                    createStars();
+                    
+                    // Tự động chuyển màn sau 1.5 giây để bé kịp nhìn thông báo
+                    setTimeout(() => {
+                        level++;
+                        initLevel();
+                    }, 1500);
+                }, 500);
+            }
+        }
+
+        function createStars() {
+            const icons = ['⭐', '🌟', '✨', '🍭', '🍓', '🌈'];
+            for (let i = 0; i < 30; i++) {
+                const el = document.createElement('div');
+                el.style.position = 'fixed';
+                el.style.zIndex = '3000';
+                el.textContent = icons[Math.floor(Math.random() * icons.length)];
+                el.style.left = Math.random() * 100 + 'vw';
+                el.style.top = '-50px';
+                el.style.fontSize = (Math.random() * 20 + 30) + 'px';
+                el.style.pointerEvents = 'none';
+                
+                const anim = el.animate([
+                    { transform: 'translateY(0) rotate(0deg)', opacity: 1 },
+                    { transform: `translateY(110vh) rotate(${Math.random() * 1000}deg)`, opacity: 0 }
+                ], {
+                    duration: 1500,
+                    easing: 'ease-in'
+                });
+                
+                document.body.appendChild(el);
+                anim.onfinish = () => el.remove();
+            }
+        }
+
+        window.onload = initLevel;
+        window.addEventListener('resize', initLevel);
+    </script>
+</body>
+</html>

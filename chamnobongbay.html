@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bé Chạm Bóng Bay</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Comfortaa', cursive;
+            background: linear-gradient(to bottom, #87CEEB 0%, #E0F7FA 100%);
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+            touch-action: none;
+            user-select: none;
+        }
+
+        .balloon {
+            position: absolute;
+            bottom: -150px;
+            cursor: pointer;
+            transition: transform 0.1s;
+            filter: drop-shadow(0 10px 10px rgba(0,0,0,0.1));
+            z-index: 10;
+        }
+
+        /* Dây bong bóng */
+        .balloon::after {
+            content: "";
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            width: 2px;
+            height: 40px;
+            background: rgba(0,0,0,0.1);
+            transform: translateX(-50%);
+        }
+
+        /* Hiệu ứng nổ */
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            z-index: 20;
+            animation: explode 0.6s ease-out forwards;
+        }
+
+        @keyframes explode {
+            0% { transform: scale(1) translate(0, 0); opacity: 1; }
+            100% { transform: scale(0) translate(var(--dx), var(--dy)); opacity: 0; }
+        }
+
+        .cloud {
+            position: absolute;
+            background: white;
+            border-radius: 50px;
+            opacity: 0.8;
+            z-index: 1;
+            animation: drift linear infinite;
+        }
+
+        @keyframes drift {
+            from { transform: translateX(-200px); }
+            to { transform: translateX(110vw); }
+        }
+
+        .score-pop {
+            position: absolute;
+            color: #FF6B6B;
+            font-weight: bold;
+            font-size: 2rem;
+            pointer-events: none;
+            animation: slideUpFade 0.8s ease-out forwards;
+            z-index: 30;
+        }
+
+        @keyframes slideUpFade {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-50px); opacity: 0; }
+        }
+
+        /* Overlay khởi động */
+        #start-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(135, 206, 235, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Màn hình bắt đầu để kích hoạt âm thanh -->
+    <div id="start-overlay" onclick="startGame()">
+        <div class="text-white text-4xl font-black mb-4 drop-shadow-lg text-center px-4 uppercase">Chạm để chơi nhé!</div>
+        <div class="text-white text-7xl animate-bounce">🎈</div>
+        <div class="mt-8 bg-white text-sky-500 px-8 py-3 rounded-full font-bold shadow-xl">BẮT ĐẦU</div>
+    </div>
+
+    <!-- Header -->
+    <div class="fixed top-0 left-0 w-full p-4 flex justify-between items-center z-50 pointer-events-none">
+        <a href="index.html" class="pointer-events-auto bg-white/80 backdrop-blur-sm w-12 h-12 flex items-center justify-center rounded-2xl shadow-lg text-2xl">🏠</a>
+        <div class="bg-white/80 backdrop-blur-sm px-6 py-2 rounded-full shadow-lg border-b-4 border-blue-200 pointer-events-auto">
+            <span class="text-blue-500 font-bold uppercase tracking-wider">Điểm: </span>
+            <span id="score" class="text-pink-500 font-black text-2xl">0</span>
+        </div>
+        <div class="w-12"></div>
+    </div>
+
+    <!-- Khu vực trò chơi -->
+    <div id="game-container" class="relative w-full h-full">
+        <!-- Mây trang trí -->
+        <div class="cloud w-32 h-12 top-20 left-[-150px]" style="animation-duration: 25s;"></div>
+        <div class="cloud w-48 h-16 top-40 left-[-200px]" style="animation-duration: 35s; opacity: 0.6;"></div>
+        <div class="cloud w-24 h-8 top-10 left-[-100px]" style="animation-duration: 18s;"></div>
+    </div>
+
+    <script>
+        const container = document.getElementById('game-container');
+        const scoreEl = document.getElementById('score');
+        const startOverlay = document.getElementById('start-overlay');
+        let score = 0;
+        let gameRunning = false;
+
+        const COLORS = [
+            '#FF6B6B', '#4ECDC4', '#FFD93D', '#FF9F43', 
+            '#A55EEA', '#26DE81', '#FD79A8', '#74B9FF'
+        ];
+
+        // Âm thanh vui nhộn được chọn lọc cho trẻ nhỏ
+        const popSounds = [
+            'https://freesound.org/data/previews/411/411639_5121236-lq.mp3', // Pop giòn tan
+            'https://freesound.org/data/previews/244/244655_3797507-lq.mp3'  // Bubble pop nhẹ nhàng
+        ];
+        
+        // Khởi tạo pool âm thanh để có thể phát chồng lên nhau
+        const audioPool = popSounds.map(url => {
+            const audio = new Audio(url);
+            audio.load();
+            return audio;
+        });
+
+        function playPopSound() {
+            // Chọn ngẫu nhiên một kiểu âm thanh
+            const baseAudio = audioPool[Math.floor(Math.random() * audioPool.length)];
+            const soundEffect = baseAudio.cloneNode();
+            
+            // Thay đổi tốc độ phát một chút để âm thanh không bị lặp lại đơn điệu
+            soundEffect.playbackRate = 0.8 + Math.random() * 0.4; 
+            soundEffect.volume = 0.8;
+            
+            soundEffect.play().catch(e => {
+                console.warn("Không thể phát âm thanh:", e);
+            });
+        }
+
+        function startGame() {
+            startOverlay.classList.add('opacity-0');
+            setTimeout(() => {
+                startOverlay.style.display = 'none';
+            }, 300);
+            
+            gameRunning = true;
+            
+            // Kích hoạt audio context bằng cách phát một âm thanh im lặng hoặc ngắn
+            audioPool.forEach(a => {
+                const playPromise = a.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        a.pause();
+                        a.currentTime = 0;
+                    }).catch(() => {});
+                }
+            });
+            
+            gameLoop();
+        }
+
+        function createBalloon() {
+            if (!gameRunning) return;
+
+            const balloon = document.createElement('div');
+            balloon.className = 'balloon';
+            
+            const size = Math.random() * 40 + 75; 
+            const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+            const startX = Math.random() * (window.innerWidth - size);
+            const duration = Math.random() * 3000 + 5000; // Bay chậm hơn một chút để bé dễ chạm
+
+            balloon.style.width = size + 'px';
+            balloon.style.height = (size * 1.25) + 'px';
+            balloon.style.left = startX + 'px';
+            balloon.style.backgroundColor = color;
+            balloon.style.borderRadius = '50% 50% 50% 50% / 40% 40% 60% 60%';
+            
+            const animation = balloon.animate([
+                { transform: 'translateY(0) rotate(0deg)' },
+                { transform: `translateY(-${window.innerHeight + 300}px) rotate(${Math.random() * 30 - 15}deg)` }
+            ], {
+                duration: duration,
+                easing: 'linear'
+            });
+
+            const popAction = (e) => {
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                
+                const rect = balloon.getBoundingClientRect();
+                if (rect.top > window.innerHeight) return; // Không nổ nếu đã bay quá xa
+
+                explode(rect.left + rect.width / 2, rect.top + rect.height / 2, color);
+                
+                balloon.remove();
+                score += 1;
+                scoreEl.textContent = score;
+                
+                playPopSound();
+            };
+
+            balloon.addEventListener('mousedown', popAction);
+            balloon.addEventListener('touchstart', popAction, { passive: false });
+
+            container.appendChild(balloon);
+            animation.onfinish = () => balloon.remove();
+        }
+
+        function explode(x, y, color) {
+            // Tạo các hạt nổ
+            for (let i = 0; i < 12; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                const pSize = Math.random() * 10 + 5;
+                p.style.width = pSize + 'px';
+                p.style.height = pSize + 'px';
+                p.style.backgroundColor = color;
+                p.style.borderRadius = '50%';
+                p.style.left = x + 'px';
+                p.style.top = y + 'px';
+                
+                const angle = Math.random() * Math.PI * 2;
+                const velocity = Math.random() * 150 + 50;
+                p.style.setProperty('--dx', `${Math.cos(angle) * velocity}px`);
+                p.style.setProperty('--dy', `${Math.sin(angle) * velocity}px`);
+                
+                container.appendChild(p);
+                setTimeout(() => p.remove(), 600);
+            }
+
+            // Hiển thị hiệu ứng lấp lánh
+            const spark = document.createElement('div');
+            spark.className = 'score-pop';
+            spark.innerHTML = '✨';
+            spark.style.left = (x - 20) + 'px';
+            spark.style.top = (y - 20) + 'px';
+            container.appendChild(spark);
+            setTimeout(() => spark.remove(), 800);
+        }
+
+        function gameLoop() {
+            if (!gameRunning) return;
+            createBalloon();
+            // Tốc độ sinh bóng phù hợp với trẻ em
+            const spawnRate = Math.max(700, 1500 - (score * 5));
+            setTimeout(gameLoop, spawnRate);
+        }
+
+        // Chống zoom và các hành vi mặc định gây lag trên mobile
+        document.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 1) e.preventDefault();
+        }, { passive: false });
+    </script>
+</body>
+</html>
